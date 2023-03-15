@@ -1,3 +1,4 @@
+val grackleVersion             = "0.10.3"
 val lucumaGraphQLRoutesVersion = "0.5.11"
 val http4sBlazeVersion         = "0.23.13"
 
@@ -13,6 +14,7 @@ lazy val service = project
     name := "lucuma-odb-service",
     libraryDependencies ++= Seq(
       "edu.gemini"  %% "lucuma-graphql-routes-grackle"  % lucumaGraphQLRoutesVersion,
+      "edu.gemini"  %% "gsp-graphql-skunk"              % grackleVersion,
       "org.http4s"  %% "http4s-blaze-server"            % http4sBlazeVersion,
     ),
   )
