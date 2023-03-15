@@ -46,10 +46,9 @@ trait ExampleMain extends IOApp:
 
   def server(using Logger[IO]): Resource[IO, ExitCode] =
     for
-      c  <- Resource.eval(Config.load[IO])
       m  <- mapping
       ap <- graphQLRoutes(m).map(_.map(_.orNotFound))
-      _  <- serverResource(c.port, ap)
+      _  <- serverResource(Port.fromInt(8080).get, ap)
     yield ExitCode.Success
 
   def run(args: List[String]): IO[ExitCode] =
