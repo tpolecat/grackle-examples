@@ -22,8 +22,8 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import cats.effect.IO
 import natchez.Trace.Implicits.noop
 
-// postgres database
-object WorldMapping1 extends ExampleMain:
+// add a join
+object WorldMapping2 extends ExampleMain:
   def mapping =
     Session.pooled[IO](
       host = "localhost",
@@ -31,14 +31,22 @@ object WorldMapping1 extends ExampleMain:
       database = "test",
       password = Some("test"),
       max = 3,
-    ).map(new WorldMapping1(_))
+    ).map(new WorldMapping2(_))
 
-class WorldMapping1[F[_]: Sync](pool: Resource[F, Session[F]]) extends SkunkMapping[F](pool, SkunkMonitor.noopMonitor):
+class WorldMapping2[F[_]: Sync](pool: Resource[F, Session[F]]) extends SkunkMapping[F](pool, SkunkMonitor.noopMonitor):
 
   object country extends TableDef("country") {
     val code       = col("code", bpchar(3))
     val name       = col("name", text)
     val population = col("population", int4)
+  }
+
+  object city extends TableDef("city") {
+    val id          = col("id", int4)
+    val countrycode = col("countrycode", text)
+    val name        = col("name", text)
+    val district    = col("district", text)
+    val population  = col("population", int4)
   }
 
   val schema =
@@ -50,11 +58,19 @@ class WorldMapping1[F[_]: Sync](pool: Resource[F, Session[F]]) extends SkunkMapp
         code: String!
         name: String!
         population: Int!
+        cities: [City!]!
+      }
+      type City {
+        name: String!
+        country: Country!
+        district: String!
+        population: Int!
       }
     """
 
-  val QueryType    = schema.ref("Query")
-  val CountryType  = schema.ref("Country")
+  val QueryType   = schema.ref("Query")
+  val CountryType = schema.ref("Country")
+  val CityType    = schema.ref("City")
 
   val typeMappings =
     List(
@@ -70,7 +86,18 @@ class WorldMapping1[F[_]: Sync](pool: Resource[F, Session[F]]) extends SkunkMapp
           SqlField("code",       country.code, key = true),
           SqlField("name",       country.name),
           SqlField("population", country.population),
+          SqlObject("cities",    Join(country.code, city.countrycode)),
         ),
+      ),
+      ObjectMapping(
+        tpe = CityType,
+        fieldMappings = List(
+          SqlField("id", city.id, key = true, hidden = true),
+          SqlField("name", city.name),
+          SqlField("district", city.district),
+          SqlField("population", city.population),
+          SqlObject("country", Join(city.countrycode, country.code)),
+        )
       ),
     )
 
